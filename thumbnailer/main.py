@@ -24,8 +24,8 @@ conf["viur.file.thumbnailer_secKey"] = b"xxxxxxxxxxxxxxxxx"
 
 
 def main(request):
-	conf["viur.file.thumbnailer_secKey"]=os.environ['SECKEY']
-	conf["hmackey"]=os.environ['HMACKEY']
+	conf["viur.file.thumbnailer_secKey"]=bytes(str(os.environ['SECKEY']), 'utf-8')
+	conf["hmackey"]=bytes(str(os.environ['HMACKEY']), 'utf-8')
 	data = request.get_json()
 
 	res=[]
@@ -42,9 +42,7 @@ def main(request):
 
 	response = requests.get(url, allow_redirects=False)
 	while response.status_code > 300 and response.status_code < 400:  # We must follow the redirect
-		print("redirect")
 		url = response.headers['Location']
-		print(url)
 		response = requests.get(url, allow_redirects=False)
 
 	if response.headers['content-type'].split("/")[0]=="image":
