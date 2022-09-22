@@ -15,16 +15,9 @@ from config import conf
 import utils
 
 
-"""
-Set the seckey in your conf in the main.py
-conf["viur.file.thumbnailer_secKey"] = b"xxxxxxxxxxxxxxxxx"
-"""
-
-
 
 
 def main(request):
-	conf["viur.file.thumbnailer_secKey"]=bytes(str(os.environ['SECKEY']), 'utf-8')
 	conf["hmackey"]=bytes(str(os.environ['HMACKEY']), 'utf-8')
 	data = request.get_json()
 
