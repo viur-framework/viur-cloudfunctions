@@ -8,7 +8,7 @@ import base64
 from io import BytesIO
 
 from flask import make_response
-
+import os
 from imagethumbnailer import resizeImage
 import pdfhumbnailer
 from config import conf
@@ -20,30 +20,35 @@ Set the seckey in your conf in the main.py
 conf["viur.file.thumbnailer_secKey"] = b"xxxxxxxxxxxxxxxxx"
 """
 
-seckey=b"xxxxxxxxxxxxxxxx"
-conf["hmackey"]=b"xxxxxxxxxxx"
 
 
 
 def main(request):
+	conf["viur.file.thumbnailer_secKey"]=os.environ['SECKEY']
+	conf["hmackey"]=os.environ['HMACKEY']
 	data = request.get_json()
 
+	res=[]
 	if not utils.hmacVerify(data["dataStr"].encode("ASCII"), data["sign"]):
 		print("HMAC Faild")
 		return make_response({"values":[]})
 	data = json.loads(base64.b64decode(data["dataStr"].encode("ASCII")).decode("UTF-8"))
 
 	url = data["url"]
+	#We must append only if local dev server
 	baseUrl = data["baseUrl"]
 	if not str(url).startswith("https://"):
 		url=baseUrl+url
+
 	response = requests.get(url, allow_redirects=False)
 	while response.status_code > 300 and response.status_code < 400:  # We must follow the redirect
+		print("redirect")
 		url = response.headers['Location']
+		print(url)
 		response = requests.get(url, allow_redirects=False)
 
 	if response.headers['content-type'].split("/")[0]=="image":
-		res = []
+
 		for i, sizeDict in enumerate(data["params"]):
 			if "sites" in sizeDict:
 				raise Exception("Error we have and derive for PDF's")
@@ -63,7 +68,7 @@ def main(request):
 
 
 	elif response.headers['content-type']=="application/pdf":
-		res = []
+
 
 		pdfhumbnailer.savepdf(response.content)
 		siteCount=pdfhumbnailer.countSites()
@@ -93,10 +98,7 @@ def main(request):
 					customdata["resolution"]=sizeDict["resolution"]
 
 				if data["nameOnly"]:
-					outData = BytesIO()
-					image.save(outData, sizeDict.get("fileExtension", "webp"))
-					outSize = outData.tell()
-					res.append({"name": name, "size": outSize})
+					res.append({"name": name,"mimeType": sizeDict.get("mimeType", "image/webp")})
 
 				else:
 					res.append(uploadImage(image, data, name, sizeDict, i, customdata))
@@ -131,11 +133,14 @@ def uploadImage(image:object,data:dict,fileName:str,sizeDict:dict,index:int,cust
 	width, height = image.size
 
 	fileExtension = sizeDict.get("fileExtension", "webp")
+	mimeType = sizeDict.get("mimeType", "image/webp")
+
 	outData = BytesIO()
 	image.save(outData, fileExtension)
 	outData.seek(0)
 	upload_response = requests.post(data["uploadUrls"][data["targetKey"]+fileName], data=outData)
 	uploadData = upload_response.json()
+
 	name = fileName
 	_customData={
 				"height": height,
