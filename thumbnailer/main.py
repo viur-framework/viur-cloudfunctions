@@ -1,8 +1,5 @@
 import json
-import logging
-import time
 import requests
-import urllib
 import base64
 
 from io import BytesIO
@@ -23,8 +20,7 @@ def main(request):
 
 	res=[]
 	if not utils.hmacVerify(data["dataStr"].encode("ASCII"), data["sign"]):
-		print("HMAC Faild")
-		return make_response({"values":[]})
+		return make_response({"error":"HMAC Key not match"})
 	data = json.loads(base64.b64decode(data["dataStr"].encode("ASCII")).decode("UTF-8"))
 
 	url = data["url"]
@@ -42,9 +38,11 @@ def main(request):
 
 		for i, sizeDict in enumerate(data["params"]):
 			if "sites" in sizeDict:
-				raise Exception("Error we have and derive for PDF's")
+				#raise Exception("")
+				return make_response({"error": "Error we have and derive for PDF's"})
 			if "resolution" in sizeDict:
-				raise Exception("Error we have and derive for PDF's")
+				#raise Exception("Error we have and derive for PDF's")
+				return make_response({"error": "Error we have and derive for PDF's"})
 
 			image,name = resizeImage(response.content,sizeDict)
 
